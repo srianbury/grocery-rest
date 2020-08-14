@@ -25,31 +25,70 @@ async function emailAlreadyInDb(req, res, next) {
   }
 }
 
-router.post("/", usernameAlreadyInDb, emailAlreadyInDb, async (req, res) => {
-  const newUser = new req.context.models.User({
-    username: req.body.username,
-    email: req.body.email
-  });
+function validUsername(req, res, next) {
+  if (req.body.username.trim().length == 0) {
+    return res.status(400).json({
+      message: "Username cannot be blank."
+    });
+  }
 
-  const newUserPassword = new req.context.models.UserPassword({
-    uid: newUser._id,
-    password: encrypt(req.body.password)
-  });
+  if (req.body.username.length < 2 || req.body.username.length > 21) {
+    return res.status(400).json({
+      message: "Username must be between 2 and 21 characters."
+    });
+  }
 
-  const newUserList = new req.context.models.List({
-    uid: newUser._id,
-    list: []
-  });
+  next();
+}
 
-  await newUser.save();
-  await newUserPassword.save();
-  await newUserList.save();
+function validPassword(req, res, next) {
+  if (req.body.password.trim().length == 0) {
+    return res.status(400).json({
+      message: "Password cannot be blank."
+    });
+  }
 
-  const token = signToken(newUser);
-  return res.status(200).json({
-    user: newUser,
-    token
-  });
-});
+  if (req.body.password.length < 10 || req.body.password.length > 30) {
+    return res.status(400).json({
+      message: "Password must be between 10 and 30 characters."
+    });
+  }
+
+  next();
+}
+
+router.post(
+  "/",
+  usernameAlreadyInDb,
+  emailAlreadyInDb,
+  validUsername,
+  validPassword,
+  async (req, res) => {
+    const newUser = new req.context.models.User({
+      username: req.body.username,
+      email: req.body.email
+    });
+
+    const newUserPassword = new req.context.models.UserPassword({
+      uid: newUser._id,
+      password: encrypt(req.body.password)
+    });
+
+    const newUserList = new req.context.models.List({
+      uid: newUser._id,
+      list: []
+    });
+
+    await newUser.save();
+    await newUserPassword.save();
+    await newUserList.save();
+
+    const token = signToken(newUser);
+    return res.status(200).json({
+      user: newUser,
+      token
+    });
+  }
+);
 
 export default router;
