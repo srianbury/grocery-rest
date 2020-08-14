@@ -19,7 +19,10 @@ app.use("/signup", routes.signup);
 app.use("/list", routes.list);
 
 connectDb();
-initDb();
+
+if (process.env.NODE_ENV !== "production") {
+  initDb();
+}
 
 app.listen(process.env.PORT, () => {
   console.log(`Running on port ${process.env.PORT}`);
